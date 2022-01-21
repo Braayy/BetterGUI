@@ -20,9 +20,23 @@ Every time the GUI is opened or updated the `setup()` method is called.
 ### GUI Configuration
 Inside the `setup()` method you can:
 - `setTitle(String)` sets the title of the GUI.
-- `setSize(int)` sets the size of the GUI.
-- `setSlotsPerPage(int)` sets the slots per page of the GUI when in a paginated GUI.
+- `setSize(GUISize)` sets the size of the GUI.
+- `setSlotsPerPage(GUISlotsPerPage)` sets the slots per page of the GUI when in a paginated GUI.
 - `setSlots(List<GUISlot>)` sets **all** the slots of the GUI when in a paginated GUI.
+
+There are six options for a GUI size that you can choose from:
+- `GUISize.ONE_LINE`
+- `GUISize.TWO_LINES`
+- `GUISize.THREE_LINES`
+- `GUISize.FOUR_LINES`
+- `GUISize.FIVE_LINES`
+- `GUISize.SIX_LINES`
+
+There are four options for a GUI slots per page that you can choose from:
+- `GUISlotsPerPage.ONE_LINE`
+- `GUISlotsPerPage.TWO_LINES`
+- `GUISlotsPerPage.THREE_LINES`
+- `GUISlotsPerPage.FOUR_LINES`
 
 ### GUI Slot types
 After configuring the GUI you can add GUI slots. There are 4 types of GUI slots:
@@ -50,10 +64,19 @@ There are three actions to do when a button in clicked:
 - `open(Player, GUI)` opens the GUI to the player as a child of the current GUI.
 - `back()` opens the parent GUI of the current GUI.
 
+### PaginatedGUI
+To create a GUI that has pages, in the `setup()` method you just pass the **complete** list of slots to the `setSlots(List<GUISlot>)`, and set the slots per page with `setSlotsPerPage(GUISlotsPerPage)`.
+
+With this two configurations, the `PaginatedGUI` can chop the list in pages that can be navigated through `nextPage(boolean)` and `previousPage(boolean)`, the boolean indicates if the GUI should update the title too(for GUIs that has the page number in the title).
+
+The page slots starts from slot 9(second line), and go until reach the end of the entire slot list or the slots per page configuration, so have this in mind when choosing the GUI size and GUI slots per page configuration.
+
 ### Async
 You can pass a ExecutorService as argument on a `GUI` or `PaginatedGUI` constructor to allow async `setup()` calls.
 
 When the async mode in on in a GUI, every `setup()` call will be made as a task in the ExecutorService.
+
+If you just want the first call to the `setup()` method to be async and then the rest can be sync, you can use the `becomeSync()` method. 
 
 ## Installation
 ### Maven
