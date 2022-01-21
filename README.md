@@ -91,7 +91,7 @@ If you just want the first call to the `setup()` method to be async and then the
 <dependency>
     <groupId>com.github.Braayy</groupId>
     <artifactId>BetterGUI</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -101,5 +101,5 @@ maven { url 'https://jitpack.io' }
 ```
 
 ```groovy
-implementation 'com.github.Braayy:BetterGUI:1.0.0'
+implementation 'com.github.Braayy:BetterGUI:1.1.0-SNAPSHOT'
 ```
