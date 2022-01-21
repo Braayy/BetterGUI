@@ -13,7 +13,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Range;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,15 +21,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 public abstract class GUI implements InventoryHolder {
-
-    protected static final int ONE_LINE = 9, TWO_LINES = 18, THREE_LINES = 27, FOUR_LINES = 36, FIVE_LINES = 45, SIX_LINES = 54;
-
     final Map<Integer, GUISlot> slotMap = new HashMap<>();
 
     private String title;
-    private int size;
+    private GUISize size;
     private GUI parent;
-    private ExecutorService executorService;
+    protected ExecutorService executorService;
 
     protected Player player;
 
@@ -58,13 +54,13 @@ public abstract class GUI implements InventoryHolder {
         return this.title;
     }
 
-    protected void setSize(@Range(from = ONE_LINE, to = SIX_LINES) int size) {
-        if (size < 9 || size > 54 || size % 9 != 0) throw new IllegalArgumentException(size + " is not a valid gui size");
+    protected void setSize(@NotNull GUISize size) {
+        Objects.requireNonNull(size, "size cannot be null");
 
         this.size = size;
     }
 
-    protected int getSize() {
+    protected GUISize getSize() {
         return this.size;
     }
 
@@ -121,10 +117,14 @@ public abstract class GUI implements InventoryHolder {
     }
 
     public void open(@NotNull Player player, @Nullable GUI parent) {
+        if (this.player != null)
+            throw new IllegalStateException("Opening inventory for more players!");
+
         Objects.requireNonNull(player, "player cannot be null");
 
         if (parent != null) {
             this.parent = parent;
+            this.parent.player = null;
             this.parent.updating = true;
         }
 
@@ -142,17 +142,13 @@ public abstract class GUI implements InventoryHolder {
         }
 
         JavaPlugin plugin = JavaPlugin.getProvidingPlugin(GUI.class);
-        CompletableFuture.runAsync(() -> {
-            setup();
+        CompletableFuture.runAsync(this::setup, this.executorService).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (this instanceof PaginatedGUI)
+                ((PaginatedGUI) this).pageSetup();
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (this instanceof PaginatedGUI)
-                    ((PaginatedGUI) this).pageSetup();
-
-                Inventory inventory = getInventory();
-                this.player.openInventory(inventory);
-            });
-        }, this.executorService);
+            Inventory inventory = getInventory();
+            this.player.openInventory(inventory);
+        }));
     }
 
     protected void simpleUpdate() {
@@ -164,7 +160,7 @@ public abstract class GUI implements InventoryHolder {
     }
 
     private void update(boolean simple) {
-        Objects.requireNonNull(this.player, "player cannot be null");
+        Objects.requireNonNull(this.player, "GUI not open for anyone to update");
 
         this.updating = true;
 
@@ -192,22 +188,18 @@ public abstract class GUI implements InventoryHolder {
         }
 
         JavaPlugin plugin = JavaPlugin.getProvidingPlugin(GUI.class);
-        CompletableFuture.runAsync(() -> {
-            setup();
+        CompletableFuture.runAsync(this::setup, this.executorService).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (this instanceof PaginatedGUI)
+                ((PaginatedGUI) this).pageSetup();
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (this instanceof PaginatedGUI)
-                    ((PaginatedGUI) this).pageSetup();
-
-                Inventory inventory = getInventory();
-                if (!simple) {
-                    this.player.openInventory(inventory);
-                } else {
-                    this.player.updateInventory();
-                    this.updating = false;
-                }
-            });
-        }, this.executorService);
+            Inventory inventory = getInventory();
+            if (!simple) {
+                this.player.openInventory(inventory);
+            } else {
+                this.player.updateInventory();
+                this.updating = false;
+            }
+        }));
     }
 
     protected boolean back() {
@@ -224,11 +216,13 @@ public abstract class GUI implements InventoryHolder {
         if (this.openInventory == null) {
             Objects.requireNonNull(this.title, "title cannot be null");
 
-            this.openInventory = Bukkit.createInventory(this, this.size, title);
+            this.openInventory = Bukkit.createInventory(this, this.size.value, title);
         }
 
-        for (Map.Entry<Integer, GUISlot> entry : this.slotMap.entrySet()) {
-            this.openInventory.setItem(entry.getKey(), entry.getValue().getIcon());
+        if (this.updating) {
+            for (Map.Entry<Integer, GUISlot> entry : this.slotMap.entrySet()) {
+                this.openInventory.setItem(entry.getKey(), entry.getValue().getIcon());
+            }
         }
 
         return this.openInventory;
