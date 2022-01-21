@@ -1,0 +1,245 @@
+package io.github.braayy.bettergui;
+
+import io.github.braayy.bettergui.handler.GUISlotCleanClickHandler;
+import io.github.braayy.bettergui.handler.GUISlotPlaceableClickHandler;
+import io.github.braayy.bettergui.slot.*;
+import io.github.braayy.bettergui.handler.GUISlotClickHandler;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+
+import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+
+public abstract class GUI implements InventoryHolder {
+
+    protected static final int ONE_LINE = 9, TWO_LINES = 18, THREE_LINES = 27, FOUR_LINES = 36, FIVE_LINES = 45, SIX_LINES = 54;
+
+    final Map<Integer, GUISlot> slotMap = new HashMap<>();
+
+    private String title;
+    private int size;
+    private GUI parent;
+    private ExecutorService executorService;
+
+    protected Player player;
+
+    private Inventory openInventory;
+    boolean updating, backing;
+
+    public GUI() {}
+
+    public GUI(ExecutorService executorService) {
+        this.executorService = executorService;
+    }
+
+    protected abstract void setup();
+
+    protected void onClose() {}
+
+    protected void setTitle(@NotNull String title) {
+        Objects.requireNonNull(title, "title cannot be null");
+
+        this.title = title;
+    }
+
+    @Nullable
+    protected String getTitle() {
+        return this.title;
+    }
+
+    protected void setSize(@Range(from = ONE_LINE, to = SIX_LINES) int size) {
+        if (size < 9 || size > 54 || size % 9 != 0) throw new IllegalArgumentException(size + " is not a valid gui size");
+
+        this.size = size;
+    }
+
+    protected int getSize() {
+        return this.size;
+    }
+
+    @Nullable
+    protected GUI getParent() {
+        return parent;
+    }
+
+    protected void becomeSync() {
+        this.executorService = null;
+    }
+
+    // region Slots
+    protected void addSlot(int slotNumber, GUISlot slot) {
+        this.slotMap.put(slotNumber, slot);
+    }
+
+    protected void addButton(int slotNumber, @Nullable ItemStack icon, @NotNull GUISlotClickHandler handler) {
+        Objects.requireNonNull(handler, "handler should not be null");
+        addSlot(slotNumber, new GUISlotButton(icon, handler));
+    }
+
+    protected void addButton(int slotNumber, @Nullable ItemStack icon, @NotNull GUISlotCleanClickHandler handler) {
+        Objects.requireNonNull(handler, "handler should not be null");
+        addSlot(slotNumber, new GUISlotButton(icon, handler));
+    }
+
+    protected void addCapturable(int slotNumber, @NotNull ItemStack icon, @Nullable GUISlotClickHandler handler) {
+        Objects.requireNonNull(icon, "icon should not be null");
+        addSlot(slotNumber, new GUISlotCapturable(icon, handler));
+    }
+
+    protected void addCapturable(int slotNumber, @NotNull ItemStack icon) {
+        Objects.requireNonNull(icon, "icon should not be null");
+        addSlot(slotNumber, new GUISlotCapturable(icon, null));
+    }
+
+    protected void addDisplay(int slotNumber, @Nullable ItemStack item) {
+        addSlot(slotNumber, new GUISlotDisplay(item));
+    }
+
+    protected void addPlaceable(int slotNumber, @NotNull GUISlotPlaceableClickHandler handler) {
+        Objects.requireNonNull(handler, "icon should not be null");
+        addSlot(slotNumber, new GUISlotPlaceable(handler));
+    }
+
+    protected void addPlaceable(int slotNumber) {
+        addSlot(slotNumber, new GUISlotPlaceable(null));
+    }
+    // endregion
+
+    public void open(@NotNull Player player) {
+        open(player, null);
+    }
+
+    public void open(@NotNull Player player, @Nullable GUI parent) {
+        Objects.requireNonNull(player, "player cannot be null");
+
+        if (parent != null) {
+            this.parent = parent;
+            this.parent.updating = true;
+        }
+
+        this.player = player;
+
+        if (this.executorService == null) {
+            setup();
+            if (this instanceof PaginatedGUI)
+                ((PaginatedGUI) this).pageSetup();
+
+            Inventory inventory = getInventory();
+            this.player.openInventory(inventory);
+
+            return;
+        }
+
+        JavaPlugin plugin = JavaPlugin.getProvidingPlugin(GUI.class);
+        CompletableFuture.runAsync(() -> {
+            setup();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (this instanceof PaginatedGUI)
+                    ((PaginatedGUI) this).pageSetup();
+
+                Inventory inventory = getInventory();
+                this.player.openInventory(inventory);
+            });
+        }, this.executorService);
+    }
+
+    protected void simpleUpdate() {
+        update(true);
+    }
+
+    protected void fullUpdate() {
+        update(false);
+    }
+
+    private void update(boolean simple) {
+        Objects.requireNonNull(this.player, "player cannot be null");
+
+        this.updating = true;
+
+        if (simple)
+            this.openInventory.clear();
+        else
+            this.openInventory = null;
+
+        this.slotMap.clear();
+
+        if (this.executorService == null) {
+            setup();
+            if (this instanceof PaginatedGUI)
+                ((PaginatedGUI) this).pageSetup();
+
+            Inventory inventory = getInventory();
+            if (!simple) {
+                this.player.openInventory(inventory);
+            } else {
+                this.player.updateInventory();
+                this.updating = false;
+            }
+
+            return;
+        }
+
+        JavaPlugin plugin = JavaPlugin.getProvidingPlugin(GUI.class);
+        CompletableFuture.runAsync(() -> {
+            setup();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (this instanceof PaginatedGUI)
+                    ((PaginatedGUI) this).pageSetup();
+
+                Inventory inventory = getInventory();
+                if (!simple) {
+                    this.player.openInventory(inventory);
+                } else {
+                    this.player.updateInventory();
+                    this.updating = false;
+                }
+            });
+        }, this.executorService);
+    }
+
+    protected boolean back() {
+        if (this.parent == null || this.player == null) return false;
+
+        this.backing = true;
+        this.parent.open(player);
+        return true;
+    }
+
+    @NotNull
+    @Override
+    public Inventory getInventory() {
+        if (this.openInventory == null) {
+            Objects.requireNonNull(this.title, "title cannot be null");
+
+            this.openInventory = Bukkit.createInventory(this, this.size, title);
+        }
+
+        for (Map.Entry<Integer, GUISlot> entry : this.slotMap.entrySet()) {
+            this.openInventory.setItem(entry.getKey(), entry.getValue().getIcon());
+        }
+
+        return this.openInventory;
+    }
+
+    /*
+    00 01 02 03 04 05 06 07 08
+    09 10 11 12 13 14 15 16 17
+    18 19 20 21 22 23 24 25 26
+    27 28 29 30 31 32 33 34 35
+    36 37 38 39 40 41 42 43 44
+    45 46 47 48 49 50 51 52 53
+    */
+}
