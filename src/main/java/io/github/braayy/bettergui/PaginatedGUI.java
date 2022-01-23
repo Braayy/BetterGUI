@@ -22,8 +22,12 @@ public abstract class PaginatedGUI extends GUI {
         this.slots = slots;
     }
 
-    protected boolean isEmpty() {
-        return slots == null || slots.isEmpty();
+    protected boolean isSlotsLoaded() {
+        return slots != null;
+    }
+
+    protected List<GUISlot> getSlots() {
+        return slots;
     }
 
     protected void setSlotsPerPage(@NotNull GUISlotsPerPage slotsPerPage) {
