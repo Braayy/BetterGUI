@@ -6,7 +6,7 @@ public enum GUISlotsPerPage {
     THREE_LINES(27),
     FOUR_LINES(36);
 
-    final int value;
+    public final int value;
 
     GUISlotsPerPage(int value) {
         this.value = value;

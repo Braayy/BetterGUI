@@ -8,7 +8,7 @@ public enum GUISize {
     FIVE_LINES(45),
     SIX_LINES(54);
 
-    final int value;
+    public final int value;
 
     GUISize(int value) {
         this.value = value;
