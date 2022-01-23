@@ -214,6 +214,13 @@ public abstract class GUI implements InventoryHolder {
         return true;
     }
 
+    protected void close() {
+        Objects.requireNonNull(this.player, "GUI not open for anyone to close");
+
+        this.player.closeInventory();
+        this.player = null;
+    }
+
     @NotNull
     @Override
     public Inventory getInventory() {
