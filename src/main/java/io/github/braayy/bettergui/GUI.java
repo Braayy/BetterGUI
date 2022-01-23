@@ -148,7 +148,9 @@ public abstract class GUI implements InventoryHolder {
             if (this instanceof PaginatedGUI)
                 ((PaginatedGUI) this).pageSetup();
 
+            this.updating = true;
             Inventory inventory = getInventory();
+            this.updating = false;
             this.player.openInventory(inventory);
         }));
     }
