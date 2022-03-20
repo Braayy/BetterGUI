@@ -43,7 +43,7 @@ public abstract class StateGUI<G extends StateGUI<G, S>, S extends GUIState<G, S
 
     @SuppressWarnings({"unchecked"})
     void stateSetup() {
-        this.state.setup((G) this);
+        this.state.setup((G) this, player);
     }
 
     @Override

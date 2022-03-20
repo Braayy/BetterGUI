@@ -133,7 +133,7 @@ Don't forget to shut down your ExecutorService in the disabling of the plugin.
 <dependency>
     <groupId>com.github.Braayy</groupId>
     <artifactId>BetterGUI</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -143,5 +143,5 @@ maven { url 'https://jitpack.io' }
 ```
 
 ```groovy
-implementation 'com.github.Braayy:BetterGUI:1.2.0-SNAPSHOT'
+implementation 'com.github.Braayy:BetterGUI:1.2.1-SNAPSHOT'
 ```
