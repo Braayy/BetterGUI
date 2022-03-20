@@ -6,7 +6,8 @@ A simple but powerful GUI lib for Bukkit
 BetterGUI uses a POO approach for simplicity, so using it is just like creating a class.
 
 First, `GUIListener.register(JavaPlugin)` should be called on the plugin's `onEnable()` method.
-This is where all events are handled, so if it is not registered, nothing about clicking and closing will work. 
+This is where all events are handled, so if it is not registered, nothing about clicking and closing will work.
+Calling this method twice will cause a warning to be logged in the console.
 
 ### Basics
 For a common GUI, create a class extending `GUI`.
@@ -57,7 +58,7 @@ Each GUI slot type has a corresponding method:
 - `addPlaceable(int)` adds a GUISlotPlaceable without a click handler in the specified slot index.
 
 ### Actions
-There are three actions to do when a button in clicked:
+There are five actions to do when a button in clicked:
 - `simpleUpdate()` updates the GUI by only changing the items.
 - `fullUpdate()` updates the GUI by changing everything, including title, slots and size.
 - `open(Player)` opens the GUI to the player.
@@ -71,12 +72,53 @@ With this two configurations, the `PaginatedGUI` can chop the list in pages that
 
 The page slots starts from slot 9(second line), and go until reach the end of the entire slot list or the slots per page configuration, so have this in mind when choosing the GUI size and GUI slots per page configuration.
 
+### StateGUI
+To create a GUI that has a state machine built-in to it, create a class/interface that represents a state of your GUI and implement/extend the `GUIState` interface.
+
+In a StateGUI you can at any point call `setState(GUIState, boolean)`
+The state passed will be the new state in the next `setup()` call and the boolean tells StateGUI if it should update only the items or everything.
+
+Every time the `setup()` of the GUI is called, the `setup()` of the current state is called, so things related to only one state should be placed there and things related to all states, like the style of the GUI, should be placed in the GUI's `setup()`.
+
+`StateGUI` and `GUIState` asks for 2 type parameters, the first one is the type of your GUI and the second the type of the State of your GUI.
+
+Example:
+```java
+public final class TestingGUI extends StateGUI<TestingGUI, TestingState> {
+    public TestingGUI() {
+        // Here you pass the initial state, the state of your GUI when it is open the first time
+        super(TestingState.INIT);
+    }
+    
+    // Rest of your gui here
+}
+
+public interface TestingState extends GUIState<TestingGUI, TestingState> {
+    /*
+    I like to create this field, so I do not have to create a new object representing
+    this state that has no internal properties every time I need to come back to it
+    */
+    TestingState INIT = new InitState();
+    
+    final class InitState implements TestingState {
+        @Override
+        public void setup(TestingGUI gui) {
+            // Place here the slots and logic when the GUI is in the InitState here
+        }
+    }
+    
+    // Rest of your states here
+}
+```
+
 ### Async
 You can pass a ExecutorService as argument on a `GUI` or `PaginatedGUI` constructor to allow async `setup()` calls.
 
 When the async mode in on in a GUI, every `setup()` call will be made as a task in the ExecutorService.
 
-If you just want the first call to the `setup()` method to be async and then the rest can be sync, you can use the `becomeSync()` method. 
+If you just want the first call to the `setup()` method to be async and then the rest can be sync, you can use the `becomeSync()` method.
+
+Don't forget to shut down your ExecutorService in the disabling of the plugin.
 
 ## Installation
 ### Maven
@@ -91,7 +133,7 @@ If you just want the first call to the `setup()` method to be async and then the
 <dependency>
     <groupId>com.github.Braayy</groupId>
     <artifactId>BetterGUI</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -101,5 +143,5 @@ maven { url 'https://jitpack.io' }
 ```
 
 ```groovy
-implementation 'com.github.Braayy:BetterGUI:1.1.0-SNAPSHOT'
+implementation 'com.github.Braayy:BetterGUI:1.2.0-SNAPSHOT'
 ```

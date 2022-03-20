@@ -12,10 +12,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class GUIListener implements Listener {
 
+    private static boolean registered = false;
+
     private GUIListener() {}
 
     public static void register(JavaPlugin plugin) {
+        if (registered) {
+            plugin.getLogger().warning("Tried to register GUIListener twice!");
+            return;
+        }
+
         Bukkit.getPluginManager().registerEvents(new GUIListener(), plugin);
+        registered = true;
     }
 
     @EventHandler

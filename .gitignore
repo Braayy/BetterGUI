@@ -1,2 +1,6 @@
 .idea/
 target/
+
+# Ignore test plugin files
+src/main/java/io/github/braayy/bettergui/test/
+src/main/resources/plugin.yml

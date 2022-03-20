@@ -1,6 +1,7 @@
 package io.github.braayy.bettergui;
 
 import io.github.braayy.bettergui.handler.GUISlotCleanClickHandler;
+import io.github.braayy.bettergui.handler.GUISlotPlaceableCleanClickHandler;
 import io.github.braayy.bettergui.handler.GUISlotPlaceableClickHandler;
 import io.github.braayy.bettergui.slot.*;
 import io.github.braayy.bettergui.handler.GUISlotClickHandler;
@@ -93,6 +94,11 @@ public abstract class GUI implements InventoryHolder {
         addSlot(slotNumber, new GUISlotCapturable(icon, handler));
     }
 
+    protected void addCapturable(int slotNumber, @NotNull ItemStack icon, @Nullable GUISlotCleanClickHandler handler) {
+        Objects.requireNonNull(icon, "icon should not be null");
+        addSlot(slotNumber, new GUISlotCapturable(icon, handler));
+    }
+
     protected void addCapturable(int slotNumber, @NotNull ItemStack icon) {
         Objects.requireNonNull(icon, "icon should not be null");
         addSlot(slotNumber, new GUISlotCapturable(icon, null));
@@ -102,8 +108,11 @@ public abstract class GUI implements InventoryHolder {
         addSlot(slotNumber, new GUISlotDisplay(item));
     }
 
-    protected void addPlaceable(int slotNumber, @NotNull GUISlotPlaceableClickHandler handler) {
-        Objects.requireNonNull(handler, "icon should not be null");
+    protected void addPlaceable(int slotNumber, @Nullable GUISlotPlaceableClickHandler handler) {
+        addSlot(slotNumber, new GUISlotPlaceable(handler));
+    }
+
+    protected void addPlaceable(int slotNumber, @Nullable GUISlotPlaceableCleanClickHandler handler) {
         addSlot(slotNumber, new GUISlotPlaceable(handler));
     }
 
@@ -112,6 +121,7 @@ public abstract class GUI implements InventoryHolder {
     }
     // endregion
 
+    // region Controls
     public void open(@NotNull Player player) {
         open(player, null);
     }
@@ -134,6 +144,8 @@ public abstract class GUI implements InventoryHolder {
             setup();
             if (this instanceof PaginatedGUI)
                 ((PaginatedGUI) this).pageSetup();
+            if (this instanceof StateGUI<?, ?>)
+                ((StateGUI<?, ?>) this).stateSetup();
 
             this.updating = true;
             Inventory inventory = getInventory();
@@ -147,6 +159,8 @@ public abstract class GUI implements InventoryHolder {
         CompletableFuture.runAsync(this::setup, this.executorService).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (this instanceof PaginatedGUI)
                 ((PaginatedGUI) this).pageSetup();
+            if (this instanceof StateGUI<?, ?>)
+                ((StateGUI<?, ?>) this).stateSetup();
 
             this.updating = true;
             Inventory inventory = getInventory();
@@ -155,11 +169,11 @@ public abstract class GUI implements InventoryHolder {
         }));
     }
 
-    protected void simpleUpdate() {
+    public void simpleUpdate() {
         update(true);
     }
 
-    protected void fullUpdate() {
+    public void fullUpdate() {
         update(false);
     }
 
@@ -179,6 +193,8 @@ public abstract class GUI implements InventoryHolder {
             setup();
             if (this instanceof PaginatedGUI)
                 ((PaginatedGUI) this).pageSetup();
+            if (this instanceof StateGUI<?, ?>)
+                ((StateGUI<?, ?>) this).stateSetup();
 
             Inventory inventory = getInventory();
             if (!simple) {
@@ -195,6 +211,8 @@ public abstract class GUI implements InventoryHolder {
         CompletableFuture.runAsync(this::setup, this.executorService).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (this instanceof PaginatedGUI)
                 ((PaginatedGUI) this).pageSetup();
+            if (this instanceof StateGUI<?, ?>)
+                ((StateGUI<?, ?>) this).stateSetup();
 
             Inventory inventory = getInventory();
             if (!simple) {
@@ -206,20 +224,21 @@ public abstract class GUI implements InventoryHolder {
         }));
     }
 
-    protected boolean back() {
-        if (this.parent == null || this.player == null) return false;
+    public void back() {
+        Objects.requireNonNull(this.parent, "GUI have no parent");
+        Objects.requireNonNull(this.player, "GUI not open for anyone to back");
 
         this.backing = true;
         this.parent.open(player);
-        return true;
     }
 
-    protected void close() {
+    public void close() {
         Objects.requireNonNull(this.player, "GUI not open for anyone to close");
 
         this.player.closeInventory();
         this.player = null;
     }
+    // endregion
 
     @NotNull
     @Override

@@ -5,6 +5,6 @@ import org.bukkit.inventory.ItemStack;
 @FunctionalInterface
 public interface GUISlotPlaceableClickHandler {
 
-    void handle(ItemStack item);
+    void handle(ItemStack stack);
 
 }

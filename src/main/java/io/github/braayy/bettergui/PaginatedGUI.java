@@ -70,7 +70,7 @@ public abstract class PaginatedGUI extends GUI {
         int startIndex = currentPage * slotsPerPage.value;
         int endIndex = Math.min(currentPage * slotsPerPage.value + slotsPerPage.value, slots.size());
 
-        List<? extends GUISlot> slotsView = slots.subList(startIndex, endIndex);
+        List<GUISlot> slotsView = slots.subList(startIndex, endIndex);
         int slot = 9;
         for (GUISlot guiSlot : slotsView) {
             addSlot(slot++, guiSlot);
